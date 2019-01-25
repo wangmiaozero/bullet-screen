@@ -1,0 +1,334 @@
+﻿<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="Copyright" content="CWBeta">
+	<title>超人气UP主变身器</title>
+	<style>
+		body
+		{
+			background: #111;
+		}
+		.video-wrapper
+		{
+			position: absolute;
+			left: 0;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			overflow: hidden;
+		}
+		.controller
+		{
+			position: relative;
+			display: block;
+			background: #000;
+			border: 1px solid white;
+			box-shadow: 0 0 26px #66ffcc;
+			z-index: 9999;
+			overflow-y: auto;
+		}
+		.danmu
+		{
+			position: absolute;
+			display: block;
+			width:800px;
+			left: 100%;
+			top: 0;
+			color: white;
+			font-family: Microsoft Yahei;
+			font-size: 24px;
+			-webkit-text-stroke : 0.5px black;
+			text-shadow: 0 0 2px rgba(0,0,0,0.4);
+			font-weight: 600;
+			overflow: hidden;
+		}
+		#previewVideo
+		{
+			color: white;
+		}
+		#video
+		{
+			display: block;
+			position: absolute;
+			left: 0;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			cursor: pointer;
+		}
+		a
+		{
+			color: #66ffcc;
+			text-decoration: none
+		}
+		.button 
+		{
+			border-radius: 5px;
+			width: 100%;
+			height: 42px;
+			line-height: 42px;
+			font-size: 24px;
+			text-align: center;
+			color: black !important;
+			background: #66ffcc;
+			margin-top: 16px;
+			cursor: pointer;
+		}
+		.button:hover
+		{
+			background: #a3ffe0;
+		}
+		.controller
+		{
+			padding: 32px 20px;
+			border-radius: 5px;
+			color: white;
+			line-height: 52px;
+			font-size: 20px;
+			box-sizing: border-box;
+			max-width: 640px;
+		}
+		.controller p
+		{
+			color: white;
+			font-size: 20px;
+			line-height: 32px;
+		}
+		.controller h3
+		{
+			margin: 0;
+			padding: 0;
+			line-height: 32px;
+		}
+		.controller input
+		{
+			font-size: 20px;
+			border-radius: 5px;
+			border: 1px solid white;
+			background: black;
+			color: white;
+			line-height: 32px;
+			text-indent: 6px;
+		}
+		.controller input#previewVideo
+		{
+			text-indent: 0;
+		}
+		#close-btn
+		{
+			position : absolute;
+			right: 12px;
+			top: 12px;
+			display: block;
+			width: 48px;
+			height: 48px;
+			font-size: 48px;
+			cursor:pointer;
+		}
+
+	</style>
+</head>
+<body onload = "Awake()">
+	<div class="video-wrapper">
+		<div class="controller">
+			<div id="close-btn">×</div>
+			<h3 style="text-align: center"> 弹幕发射工具 </h3>
+			<p> 使用方法：【请在电脑端使用】输入你的昵称和弹幕发射的频率，并选择你的本地MP4视频，点击开始发射感受『超人气的体验』！你值得拥有！(作者：<a href="http://r.cwbeta.com/?id=19" target="_blank">兔子零84</a>)</p>
+			你的昵称：<input id="uploaderName" type="text" placeholder="弹幕中提到的UP主昵称" /><br>
+			弹幕频率：<input id="danmuFireRate" type="number" placeholder="每隔多少毫秒发送一条" /><br>
+			本地视频：<input id="previewVideo" type="file" value="请选择要使用的视频" /><br>
+			<div class="button" id="startFireButton">开始发射！</div>
+		</div>
+		<video id="video" controls="controls"></video>
+	</div>
+	<script src="js/jquery-1.10.1.min.js"></script>
+	<script src="js/danmu.examples.js"></script>
+	<script type="text/javascript">
+
+		var danmuEmitter;
+		var danmuFireRate = 1000;
+
+		function Awake()
+		{
+			$("#startFireButton").click(
+				function(e){
+					Start();
+					e.stopPropagation();
+				}
+			)
+			$("#close-btn").click(
+				function(e){
+					HideController();
+					e.stopPropagation();
+				}
+			)
+			$(".video-wrapper").click(
+				function(e){
+					ShowController();
+					console.log("prevent bubble");
+					e.stopPropagation();
+				}
+			)
+			$("#previewVideo").change(
+				function()
+				{
+					var videoSrc= GetObjectURL(this.files[0]);
+					console.log("VIDEO: " + videoSrc);
+					if (videoSrc != undefined)
+					{
+						$("#video").attr("src", videoSrc);
+						$("#video").get(0).play();
+					}
+				}
+			)
+
+			OnResize();
+
+			$(window).resize(OnResize);
+		}
+
+		function OnResize()
+		{
+			console.log("Resized window");
+			$("#video").width(window.innerWidth);
+			$("#video").height(window.innerHeight);
+
+			$(".controller").css({
+				"left": (window.innerWidth - $(".controller").width()) / 2,
+				"top": (window.innerHeight - $(".controller").height()) / 2
+			});
+		}
+
+		function PreventBubble(e)
+		{
+			if(e.preventDefault)
+			{
+				e.preventDefault();
+			}
+			else
+			{
+				window.event.returnValue == false;
+			}
+		}
+
+		function ShowController()
+		{
+			$(".controller").show();
+		}
+
+		function HideController()
+		{
+			$(".controller").hide();
+		}
+
+		function Start()
+		{
+			if (danmuEmitter != undefined)
+			{
+				clearInterval(danmuEmitter);
+			}
+			danmuFireRate = $("#danmuFireRate").val();
+			danmuEmitter = setInterval(function(){FireDanmu()}, danmuFireRate);
+			HideController();
+		}
+
+		function FireDanmu()
+		{
+			var content = danmuExamples[Math.floor(Math.random() * (danmuExamples.length - 1))];
+			var uploaderName = $("#uploaderName").val();
+			content = content.replace(/{name}/g, uploaderName);
+			var Danmu = $('<p class="danmu">' + content + '</p>');
+
+			$('.video-wrapper').append(Danmu);
+			Danmu.css
+			({
+				"color": GetDanmuColor(),
+				"top": GetDanmuTop() + "px"
+			});
+			var danmuDuration = (Math.random() * 5 + 5) * 1000;
+
+			Danmu.animate(
+				{
+					left: "-800px"
+				},
+				{
+					duration: danmuDuration,
+					easing: "linear",
+					complete : function(){Destroy(this);}
+				}
+			);
+		}
+
+		function Destroy(JQitem)
+		{
+			JQitem.remove();
+		}
+
+		function GetDanmuTop()
+		{
+			var screenHeight = window.innerHeight;
+			var fontSize = 24;
+			var lineCount = screenHeight / fontSize - 1;
+			return Math.random() * lineCount * fontSize;
+		}
+
+		function GetDanmuColor()
+		{
+			var whiteRand = 80;
+			var randomValue = Math.random() * 100;
+			if (randomValue <= whiteRand)
+			{
+				return 'white';
+			}
+			else
+			{
+				return GetRandomColor();
+			}
+		}
+
+		function GetRandomColor()
+		{
+			/*
+			var r = Math.floor(100 + Math.random() * 155);
+			var g = Math.floor(100 + Math.random() * 155);
+			var b = Math.floor(100 + Math.random() * 155);
+			return "rgb(" + r + "," + g + "," + b + ")";*/
+			var randValue = Math.floor(Math.random() * 9);
+			switch (randValue)
+			{
+				case 0: return "red";
+				case 1: return "green";
+				case 2: return "yellow";
+				case 3: return "blue";
+				case 4: return "pink";
+				case 4: return "orange";
+				case 6: case 7 :return "#66ccff";
+				case 8: case 9 :return "#66ffcc";
+			}
+		}
+
+		function GetObjectURL(file) 
+		{  
+			var url = null;   
+			if (window.createObjectURL!=undefined) 
+			{  
+				url = window.createObjectURL(file) ;  
+			} 
+			else if (window.URL!=undefined) 
+			{ 
+				// mozilla(firefox)  
+				url = window.URL.createObjectURL(file) ;  
+			} 
+			else if (window.webkitURL!=undefined) 
+			{
+				// webkit or chrome  
+				url = window.webkitURL.createObjectURL(file) ;  
+			}  
+			return url ;  
+		}
+
+	</script>
+	<div style="display:none"><script src="js/z_stat.php" language="JavaScript"></script></div>
+	<div style="display:none"><script src="js/hm.js" language="JavaScript"></script></div>
+</body>
+</html>
